@@ -1,0 +1,33 @@
+To mitigate solvency risk, regulators like the PRA (UK), RBI (India), or Federal Reserve (US) require banks to submit a variety of reports that assess capital adequacy, asset quality, and overall financial health. Key reports include:
+
+1. Capital Adequacy Reports
+Common Reporting (COREP) under Basel III: Includes details of capital structure, capital ratios (like CET1, Tier 1, Total Capital), and risk-weighted assets (RWA).
+
+Internal Capital Adequacy Assessment Process (ICAAP): A self-assessment by banks of their capital needs based on their risk profile and future projections.
+
+Pillar 3 Disclosures: Public disclosures on risk exposure and capital adequacy to promote market discipline.
+
+2. Stress Testing Reports
+Reports based on regulatory stress test scenarios to evaluate if the bank can withstand severe but plausible economic downturns.
+
+Banks submit results of stress scenarios affecting credit, market, and operational risks.
+
+3. Liquidity Coverage Ratio (LCR) and Net Stable Funding Ratio (NSFR) Reports
+Though primarily for liquidity risk, these indirectly support solvency by ensuring short-term and long-term funding adequacy.
+
+4. Financial Statements & Audited Reports
+Regular submission of balance sheets, profit & loss statements, and annual reports to show profitability and retained earnings, which impact solvency.
+
+5. Leverage Ratio Reporting
+To ensure banks are not excessively leveraged, which can amplify solvency risk.
+
+6. Asset Quality Review (AQR)
+Reports on non-performing assets (NPAs), provisions, and write-offs.
+
+These reports help regulators assess:
+
+Whether the bank has enough capital to absorb losses.
+
+The quality of its assets.
+
+Its risk exposure and management effectiveness.
