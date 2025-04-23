@@ -1,0 +1,10 @@
+AZURE SERVICES TO GENERATE SYNTHETIC DATA
+
+Azure AI Foundry Synthetic Data Generation
+Azure AI Foundry (in public preview) includes a “Synthetic data generation” capability in its portal for creating artificial datasets that mirror your real data’s statistical properties—ideal for augmenting limited samples or building richly varied demos without touching PII 
+
+Azure AI Evaluation SDK – Simulator (Preview)
+The Azure AI Evaluation SDK’s Simulator class can auto-generate synthetic conversational or index-based datasets to test LLM safety, performance, or Q&A flows. You import the azure-ai-evaluation package and call Simulator to synthesize non-adversarial interactions at scale 
+
+Copilot for Azure Data Factory Synthetic Data
+In the “Copilot for Azure Data Factory” learning hub, you can see how AI assistance (GPT-powered) can craft new queries and produce synthetic tabular data right within ADF pipelines—perfect for demoing ETL workflows on stubbed data
