@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LLM Stream</title>
+</head>
+<body>
+  <h3>Ask DeepSeek-R1</h3>
+  <textarea id="prompt" rows="4" cols="50" placeholder="Enter your prompt..."></textarea><br>
+  <button onclick="ask()">Submit</button>
+  <pre id="response" style="white-space: pre-wrap;"></pre>
+
+  <script>
+  async function ask() {
+    const prompt = document.getElementById("prompt").value;
+    const responseEl = document.getElementById("response");
+    responseEl.textContent = "";
+
+    const res = await fetch(`http://127.0.0.1:8000/stream-response?prompt=${encodeURIComponent(prompt)}`);
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      responseEl.textContent += decoder.decode(value);
+    }
+  }
+</script>
+</body>
+</html>
