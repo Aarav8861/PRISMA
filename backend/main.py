@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuration
-BASE_PATH = "C:\\Users\\Atharva\\Documents\\reimagine"
+BASE_PATH = "C:\\Users\\Atharva\\Documents\\reimagine\\PRISMA\\backend"
 DATA_PATH = f"{BASE_PATH}\\synthetic_bank_data_with_transitions.xlsx"
 REPORT_PATH = f"{BASE_PATH}\\reports\\report"
 MODEL_NAME = 'deepseek-r1'
@@ -144,7 +144,7 @@ def analysis_agent(state: PrismaState, model: str = MODEL_NAME):
         f"The solvency calculated using current metrics is {solvency_label[int(state.solvency_scale)]}. "
         "Explain your reasoning using the most current metrics, historical metrics and suggest actions the bank could take to improve solvency."
     )
-    # state.response = getLLMResponse(prompt, model)
+    state.response = getLLMResponse(prompt, model)
     print("AI Response:", state.response)
     columns_to_plot = [
     "Tier1_capital_ratio",
