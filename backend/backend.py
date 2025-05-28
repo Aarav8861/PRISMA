@@ -3,6 +3,7 @@ from fastapi import FastAPI, Request
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
+from langgraph.checkpoint.memory import InMemorySaver
 from typing import List
 import os
 
@@ -23,7 +24,7 @@ app.add_middleware(
 
 # ---------- GLOBAL STATE ----------
 shared_state = PrismaState()  # Shared mutable state (not thread-safe)
-
+checkpointer = InMemorySaver()
 # ---------- BUILD FLOW 1 GRAPH ----------
 builder_flow1 = StateGraph(PrismaState)
 builder_flow1.add_node("ingest", ingest_agent)
@@ -81,4 +82,6 @@ def generate_report():
 
 @app.get("/stream-response")
 def stream_response(prompt: str): 
-    return StreamingResponse(chatbot_agent(prompt), media_type="text/plain")
+    global shared_state
+    global checkpointer
+    return StreamingResponse(chatbot_agent(shared_state, prompt, checkpointer), media_type="text/plain")
