@@ -1,9 +1,8 @@
 # main.py
-from fastapi import FastAPI, Request
-from pydantic import BaseModel
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
-from typing import List
+from langgraph.checkpoint.memory import InMemorySaver
 import os
 
 
@@ -23,7 +22,7 @@ app.add_middleware(
 
 # ---------- GLOBAL STATE ----------
 shared_state = PrismaState()  # Shared mutable state (not thread-safe)
-
+checkpointer = InMemorySaver()
 # ---------- BUILD FLOW 1 GRAPH ----------
 builder_flow1 = StateGraph(PrismaState)
 builder_flow1.add_node("ingest", ingest_agent)
@@ -73,12 +72,7 @@ def generate_report():
         media_type="application/pdf"
     )
 
-# @app.get("/suggested-questions", response_model=List[str])
-# def get_suggested_questions():
-#     global shared_state
-#     ai_response = shared_state.get("response")
-#     return generate_suggested_questions(ai_response)
-
 @app.get("/stream-response")
 def stream_response(prompt: str): 
-    return StreamingResponse(chatbot_agent(prompt), media_type="text/plain")
+    global checkpointer
+    return StreamingResponse(chatbot_agent(prompt, checkpointer), media_type="text/plain")

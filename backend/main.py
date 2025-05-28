@@ -1,6 +1,3 @@
-# !pip install --upgrade pip
-# !pip install fpdf pandas openpyxl ollama torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu128
-# !pip install transformers sentencepiece accelerate ipywidgets langchain-ollama langgraph
 import os
 import re
 from typing import List
@@ -8,11 +5,12 @@ from pydantic import BaseModel, ConfigDict, Field
 import pandas as pd
 from fpdf import FPDF
 import ollama
-from langgraph.graph import StateGraph
-from langgraph.graph.message import add_messages
 import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import datetime
+from langchain_ollama import ChatOllama
+from langgraph.prebuilt import create_react_agent
+from langgraph.checkpoint.memory import InMemorySaver
 
 # Configuration
 BASE_PATH = "C:\\Users\\Atharva\\Documents\\reimagine\\PRISMA\\backend"
@@ -234,13 +232,27 @@ def report_gen_agent(state: PrismaState, report_path: str = REPORT_PATH):
     print(f"Report saved to: {report_path}")
     return state
 
-def chatbot_agent(prompt: str, model: str = MODEL_NAME):
-    # Stream the response from Ollama model
-    response = ollama.chat(
-        model=model,
-        messages=[{'role': 'user', 'content': prompt}],
-        stream=True
+
+def chatbot_agent(prompt: str, checkpointer: InMemorySaver, model: str = MODEL_NAME):
+    # Chat model
+    chat_model =  ChatOllama(  
+        model = model,  
+        temperature = 0.8,  
+        num_predict = 256  
     )
-    for chunk in response:
-        if 'message' in chunk and 'content' in chunk['message']:
-            yield chunk['message']['content']
+    
+    msg = {"messages": [{"role": "user", "content": prompt}]}
+    agent = create_react_agent(
+        model=chat_model,
+        tools=[],
+        checkpointer=checkpointer 
+    )
+    config = {
+        "configurable": {
+            "thread_id": "1"  
+        }
+    }
+    # Invoke and stream
+    for token, metadata in agent.stream(msg, config, stream_mode="messages"):
+        if hasattr(token, "content"):
+            yield token.content
