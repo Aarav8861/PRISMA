@@ -1,19 +1,22 @@
 import os
 import re
+import matplotlib.pyplot as plt
+import pandas as pd
+import ollama
+import tempfile
 from typing import List
 from pydantic import BaseModel, ConfigDict, Field
-import pandas as pd
 from fpdf import FPDF
-import ollama
-import matplotlib.pyplot as plt
-from pathlib import Path
-from datetime import datetime
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
+from pathlib import Path
+from datetime import datetime
+from PyPDF2 import PdfReader, PdfWriter
+from datetime import datetime
 
 # Configuration
-BASE_PATH = "C:\\Users\\Atharva\\Documents\\reimagine\\PRISMA\\backend"
+BASE_PATH = "C:\\Reimagine\\PRISMA\\backend"
 DATA_PATH = f"{BASE_PATH}\\synthetic_bank_data_with_transitions.xlsx"
 REPORT_PATH = f"{BASE_PATH}\\reports\\report"
 MODEL_NAME = 'deepseek-r1'
@@ -232,6 +235,176 @@ def report_gen_agent(state: PrismaState, report_path: str = REPORT_PATH):
     print(f"Report saved to: {report_path}")
     return state
 
+
+def report_gen_agent(state: PrismaState, report_path: str = REPORT_PATH):
+    # Helper: draw footer with page number
+    BLUE = (0, 173, 239)
+    class PDF(FPDF):
+        def footer(self):
+            self.set_y(-15)
+            self.set_font("Arial", "I", 8)
+            self.set_text_color(100, 100, 100)
+            self.cell(0, 10, f"Page {self.page_no()}", align="C")
+
+    # 1) Build content PDF, track section starts
+    pdf = PDF()
+    pdf.set_auto_page_break(True, 15)
+    section_pages = {}
+
+    # COVER
+    pdf.add_page()
+    if Path("Barclays-Logo.png").exists():
+        pdf.image("Barclays-Logo.png", x=18, y=8, w=50)
+    pdf.set_font("Arial", "B", 20)
+    pdf.set_text_color(*BLUE)
+    pdf.ln(60)
+    pdf.cell(0, 10, "Solvency Prediction Report", ln=True, align="C")
+    raw = state.curr["Date"]
+    dt  = raw.strftime("%Y-%m-%d %H:%M:%S")
+    pdf.set_font("Arial", "", 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, f"Prediction Date: {dt}", ln=True, align="C")
+
+    # CURRENT METRICS
+    pdf.add_page()
+    section_pages["Current Metrics"] = pdf.page_no()
+
+    # Section title
+    pdf.set_font("Arial", "B", 16)
+    pdf.set_text_color(*BLUE)
+    pdf.cell(0, 10, "Current Metrics", ln=True)
+    pdf.ln(4)
+
+    # Table Header
+    pdf.set_fill_color(*BLUE)
+    pdf.set_text_color(255, 255, 255)
+    pdf.set_font("Arial", "B", 12)
+    w   = pdf.w - pdf.l_margin - pdf.r_margin
+    col = w / 2
+    lh  = pdf.font_size + 6
+
+    pdf.cell(col, lh, "Metric", border=1, align="C", fill=True)
+    pdf.cell(col, lh, "Value",  border=1, align="C", fill=True)
+    pdf.ln(lh)
+
+    # Data rows
+    pdf.set_fill_color(255, 255, 255)
+    pdf.set_text_color(0, 0, 0)
+    pdf.set_font("Arial", "", 11)
+    row_h = pdf.font_size + 6
+
+    for key, val in state.curr.items():
+        if key == "Date": 
+            continue
+        pdf.cell(col, row_h, key.replace("_", " "), border="LRB", align="L")
+        pdf.cell(col, row_h, f"{val}",                 border="LRB", align="C")
+        pdf.ln(row_h)
+
+    # Bottom line
+    y = pdf.get_y()
+    pdf.set_draw_color(0,0,0)
+    pdf.line(pdf.l_margin, y, pdf.l_margin + w, y)
+
+    pdf.ln(4)
+
+    # AI SUMMARY
+    pdf.add_page()
+    section_pages["AI Summary"] = pdf.page_no()
+    pdf.set_font("Arial", "B", 14)
+    pdf.set_text_color(*BLUE)
+    pdf.cell(0, 10, "AI Summary", ln=True)
+    pdf.ln(5)
+    pdf.set_font("Arial", "", 12)
+    pdf.set_text_color(0, 0, 0)
+    # Split into paragraphs of ~80 chars
+    for para in state.response.split("\n\n"):
+        pdf.multi_cell(0, 8, para.strip())
+        pdf.ln(2)
+
+    # GRAPHS (2 per page)
+    graphs = list(state.graph_paths.items())
+    if graphs:
+        for i in range(0, len(graphs), 2):
+            pdf.add_page()
+            if "Graphs" not in section_pages:
+                section_pages["Graphs"] = pdf.page_no()
+            for j in (0, 1):
+                idx = i + j
+                if idx < len(graphs):
+                    title, path = graphs[idx]
+                    if Path(path).exists():
+                        pdf.set_font("Arial", "B", 12)
+                        pdf.set_text_color(0, 0, 0)
+                        pdf.cell(0, 8, title.replace("_", " "), ln=True)
+                        pdf.image(path, x=25, w=180)
+                        pdf.ln(6)
+
+    # Save content to temp PDF
+    tmp_content = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    pdf.output(tmp_content.name)
+    tmp_content.close()
+
+    # 2) Build one‐page TOC PDF
+    reader = PdfReader(tmp_content.name)
+    total = len(reader.pages)
+
+    toc = FPDF()
+    toc.set_auto_page_break(False)
+    toc.add_page()
+    toc.set_font("Arial", "B", 18)
+    toc.set_text_color(*BLUE)
+    toc.set_xy(25,55)
+    toc.cell(0, 10, "Contents")
+    toc.ln(6)
+    toc.set_font("Arial", "", 12)
+    toc.set_text_color(0, 0, 0)
+
+    start_x, start_y, lh = 25, 70, 8
+    entries = [
+        ("Current Metrics", section_pages.get("Current Metrics", 2)),
+        ("AI Summary",      section_pages.get("AI Summary",      3)),
+        ("Graphs",          section_pages.get("Graphs",          total)),
+    ]
+    for idx, (title, pg) in enumerate(entries):
+        y = start_y + idx * lh
+        toc.set_xy(start_x, y)
+        toc.cell(80, lh, title)
+        toc.set_xy(130, y)
+        toc.cell(20, lh, str(pg), align="R")
+
+    # Footer on TOC
+    toc.set_y(-15)
+    toc.set_font("Arial", "I", 8)
+    toc.set_text_color(100, 100, 100)
+    toc.cell(0, 10, "Page 2", align="C")
+
+    tmp_toc = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf")
+    toc.output(tmp_toc.name)
+    tmp_toc.close()
+
+    # 3) Merge cover + TOC + rest
+    writer = PdfWriter()
+    # cover
+    writer.add_page(reader.pages[0])
+    # TOC
+    toc_reader = PdfReader(tmp_toc.name)
+    writer.add_page(toc_reader.pages[0])
+    # rest
+    for p in reader.pages[1:]:
+        writer.add_page(p)
+
+    final = f"{report_path}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf"
+    with open(final, "wb") as f:
+        writer.write(f)
+
+    # Clean up
+    Path(tmp_content.name).unlink()
+    Path(tmp_toc.name).unlink()
+
+    state.report_path = final
+    state.step = "chat"
+    print(f"Report saved to: {final}")
+    return state
 
 def chatbot_agent(prompt: str, checkpointer: InMemorySaver, model: str = MODEL_NAME):
     # Chat model

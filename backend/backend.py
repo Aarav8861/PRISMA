@@ -1,11 +1,9 @@
 # main.py
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langgraph.checkpoint.memory import InMemorySaver
-import os
-
-
 from main import PrismaState, ingest_agent, solvency_calc_agent, analysis_agent, report_gen_agent, suggested_questions_agent, chatbot_agent # Import your agents
 from langgraph.graph import StateGraph
 
