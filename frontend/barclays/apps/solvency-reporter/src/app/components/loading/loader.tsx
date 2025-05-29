@@ -17,7 +17,7 @@ const LoadingScreen = () => {
         flex: 1,
       }}
     >
-      <ReactSpeedometer width={500} needleHeightRatio={0.7} value={777} customSegmentStops={[0, 250, 750, 1000]} segmentColors={[useThemeVar.palette.primary.light, useThemeVar.palette.primary.dark, '#00bbf0']} currentValueText="Loading..." customSegmentLabels={[{
+      <ReactSpeedometer width={200} needleHeightRatio={0.7} value={777} customSegmentStops={[0, 250, 750, 1000]} segmentColors={[useThemeVar.palette.primary.light, useThemeVar.palette.primary.dark, '#00bbf0']} currentValueText="Loading..." customSegmentLabels={[{
         color: '#d8dee9'
       }, {
         color: '#d8dee9'
