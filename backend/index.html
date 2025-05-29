@@ -1,30 +1,50 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>LLM Stream</title>
+  <meta charset="utf-8" />
+  <title>PRISMA Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea { width: 100%; max-width: 600px; }
+    button { margin-top: 10px; padding: 8px 16px; }
+    .output { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; margin-top: 10px; white-space: pre-wrap; }
+  </style>
 </head>
 <body>
-  <h3>Ask DeepSeek-R1</h3>
-  <textarea id="prompt" rows="4" cols="50" placeholder="Enter your prompt..."></textarea><br>
-  <button onclick="ask()">Submit</button>
-  <pre id="response" style="white-space: pre-wrap;"></pre>
-
+  <h2>Solvency Analysis (Streaming)</h2>
+  <button id="run-analysis-btn">Run Analysis</button>
+  <div id="analysis-output" class="output"></div>
   <script>
-  async function ask() {
-    const prompt = document.getElementById("prompt").value;
-    const responseEl = document.getElementById("response");
-    responseEl.textContent = "";
-
-    const res = await fetch(`http://127.0.0.1:8000/stream-response?prompt=${encodeURIComponent(prompt)}`);
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder("utf-8");
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      responseEl.textContent += decoder.decode(value);
+    // Utility to append a labeled JSON chunk
+    function appendChunk(container, label, data) {
+      container.textContent += `${label}: ${JSON.stringify(data)}\n\n`;
     }
-  }
-</script>
+
+    // —————————————— Solvency Analysis Stream ——————————————
+    document.getElementById('run-analysis-btn').onclick = () => {
+      const out = document.getElementById('analysis-output');
+      out.textContent = '';
+      const es = new EventSource('http://127.0.0.1:8000/run-analysis-stream');
+
+      es.onmessage = (e) => {
+        const obj = JSON.parse(e.data);
+        if (obj.solvency_scale) {
+          appendChunk(out, 'Solvency Scale', obj.solvency_scale);
+        } else if (obj.analysis_summary) {
+          appendChunk(out, 'Analysis Summary', obj.analysis_summary);
+        } else if (obj.suggested_questions) {
+          appendChunk(out, 'Suggested Questions', obj.suggested_questions);
+        } else if (obj.graph_paths) {
+          appendChunk(out, 'Graph Paths', obj.graph_paths);
+          es.close();  // done
+        }
+      };
+
+      es.addEventListener('error', (err) => {
+        out.textContent += `Error: ${err.data || 'Stream disconnected.'}\n`;
+        es.close();
+      });
+    };
+  </script>
 </body>
 </html>

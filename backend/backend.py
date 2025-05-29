@@ -1,6 +1,7 @@
 # main.py
 import os
-from fastapi import FastAPI
+import json
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from langgraph.checkpoint.memory import InMemorySaver
@@ -21,18 +22,6 @@ app.add_middleware(
 # ---------- GLOBAL STATE ----------
 shared_state = PrismaState()  # Shared mutable state (not thread-safe)
 checkpointer = InMemorySaver()
-# ---------- BUILD FLOW 1 GRAPH ----------
-builder_flow1 = StateGraph(PrismaState)
-builder_flow1.add_node("ingest", ingest_agent)
-builder_flow1.add_node("calc", solvency_calc_agent)
-builder_flow1.add_node("analyze", analysis_agent)
-builder_flow1.add_node("suggested_questions", suggested_questions_agent)
-builder_flow1.set_entry_point("ingest")
-builder_flow1.add_edge("ingest", "calc")
-builder_flow1.add_edge("calc", "analyze")
-builder_flow1.add_edge("analyze", "suggested_questions")
-graph_flow1 = builder_flow1.compile()
-
 # ---------- BUILD FLOW 2 GRAPH ----------
 builder_flow2 = StateGraph(PrismaState)
 builder_flow2.add_node("report", report_gen_agent)
@@ -41,16 +30,50 @@ graph_flow2 = builder_flow2.compile()
 
 # ---------- API ENDPOINTS ----------
 
-@app.post("/run-analysis")
-def run_analysis():
-    global shared_state
-    shared_state = graph_flow1.invoke(shared_state)
-    return {
-        "solvency_scale": shared_state.get("solvency_scale"),
-        "analysis_summary": shared_state.get("response"),
-        "suggested_questions":shared_state.get("suggestions"),
-        "graph_paths": shared_state.get("graph_paths")
-    }
+@app.get("/run-analysis-stream")
+def run_analysis_stream():
+    def event_generator():
+        global shared_state
+
+        # 1) Ingest
+        try:
+            shared_state = ingest_agent(shared_state)
+        except Exception as e:
+            yield f"event: error\ndata: Ingest failed: {e}\n\n"
+            return
+
+        # 2) Solvency calc
+        try:
+            shared_state = solvency_calc_agent(shared_state)
+            yield f"data: {json.dumps({'solvency_scale': shared_state.solvency_scale})}\n\n"
+        except Exception as e:
+            yield f"event: error\ndata: Solvency calc failed: {e}\n\n"
+            return
+
+        # 3) Analysis summary
+        try:
+            shared_state = analysis_agent(shared_state)
+            yield f"data: {json.dumps({'analysis_summary': shared_state.response})}\n\n"
+        except Exception as e:
+            yield f"event: error\ndata: Analysis failed: {e}\n\n"
+            return
+
+        # 4) Suggested questions
+        try:
+            shared_state = suggested_questions_agent(shared_state)
+            yield f"data: {json.dumps({'suggested_questions': shared_state.suggestions})}\n\n"
+        except Exception as e:
+            yield f"event: error\ndata: Suggestions failed: {e}\n\n"
+            return
+
+        # 5) Graph paths (last chunk)
+        try:
+            yield f"data: {json.dumps({'graph_paths': shared_state.graph_paths})}\n\n"
+        except Exception as e:
+            yield f"event: error\ndata: Graph paths failed: {e}\n\n"
+            return
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 @app.post("/generate-report")
 def generate_report():
