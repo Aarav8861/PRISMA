@@ -1,6 +1,7 @@
 # main.py
 import os
 import json
+import time
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
@@ -45,15 +46,19 @@ def run_analysis_stream():
         # 2) Solvency calc
         try:
             shared_state = solvency_calc_agent(shared_state)
-            yield f"data: {json.dumps({'solvency_scale': shared_state.solvency_scale})}\n\n"
+            data = json.dumps({'solvency_scale': shared_state.solvency_scale})
+            time.sleep(2)
+            yield f"data: {data}\n\n"
         except Exception as e:
             yield f"event: error\ndata: Solvency calc failed: {e}\n\n"
             return
 
         # 3) Analysis summary
         try:
+            yield f"data: {json.dumps({'message': 'generating the analysis summary, please wait...'})}\n\n"
             shared_state = analysis_agent(shared_state)
             yield f"data: {json.dumps({'analysis_summary': shared_state.response})}\n\n"
+            time.sleep(2)
         except Exception as e:
             yield f"event: error\ndata: Analysis failed: {e}\n\n"
             return
@@ -62,6 +67,7 @@ def run_analysis_stream():
         try:
             shared_state = suggested_questions_agent(shared_state)
             yield f"data: {json.dumps({'suggested_questions': shared_state.suggestions})}\n\n"
+            time.sleep(2)
         except Exception as e:
             yield f"event: error\ndata: Suggestions failed: {e}\n\n"
             return
@@ -69,11 +75,17 @@ def run_analysis_stream():
         # 5) Graph paths (last chunk)
         try:
             yield f"data: {json.dumps({'graph_paths': shared_state.graph_paths})}\n\n"
+            time.sleep(2)
+            yield f"event: close\ndata: Closing stream\n\n"
         except Exception as e:
             yield f"event: error\ndata: Graph paths failed: {e}\n\n"
             return
-
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+    headers = {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+    }
+    return StreamingResponse(event_generator(), media_type="text/event-stream", headers=headers)
 
 @app.post("/generate-report")
 def generate_report():

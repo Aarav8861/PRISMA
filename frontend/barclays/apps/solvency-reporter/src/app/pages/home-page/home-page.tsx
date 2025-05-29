@@ -3,15 +3,20 @@ import { Send } from "@mui/icons-material"
 import AppPage from "../app-page";
 import ReactSpeedometer from "react-d3-speedometer";
 import softArch from "../../../assets/images/architectural-diagram-2.png";
+import { useNavigate } from "react-router-dom";
 
 const HomePage = () => {
 
+    const navigate = useNavigate();
+    const runAnalysis = () => {
+        navigate("/analysis")
+    }
     return (
         <AppPage>
             <Grid sx={{ padding: 10 }}>
                 <ReactSpeedometer height={175} needleHeightRatio={0.7} maxSegmentLabels={5} segments={1000} value={666} textColor={'gray'} />
             </Grid>
-            <Button endIcon={<Send />} sx={{ alignSelf: 'center' }} color="secondary" variant="contained" size="large">
+            <Button onClick={runAnalysis} endIcon={<Send />} sx={{ alignSelf: 'center' }} color="secondary" variant="contained" size="large">
                 Generate report for today
             </Button>
             <Grid
