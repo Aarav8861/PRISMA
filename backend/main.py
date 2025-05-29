@@ -1,6 +1,7 @@
 import os
 import re
-import matplotlib.pyplot as plt
+import matplotlib
+import matplotlib.pyplot
 import pandas as pd
 import ollama
 import tempfile
@@ -14,12 +15,13 @@ from pathlib import Path
 from datetime import datetime
 from PyPDF2 import PdfReader, PdfWriter
 from datetime import datetime
-
+matplotlib.use("agg")
+plt = matplotlib.pyplot
 # Configuration
-BASE_PATH = "C:\\Reimagine\\PRISMA\\backend"
-DATA_PATH = f"{BASE_PATH}\\synthetic_bank_data_with_transitions.xlsx"
-REPORT_PATH = f"{BASE_PATH}\\reports\\report"
-MODEL_NAME = 'deepseek-r1'
+BASE_PATH = "/Users/anantraut/workspace/barclays/hackathon/PRISMA/backend/"
+DATA_PATH = f"{BASE_PATH}synthetic_bank_data_with_transitions.xlsx"
+REPORT_PATH = f"{BASE_PATH}reports\\report"
+MODEL_NAME = 'deepseek-r1:1.5b'
 
 solvency_label = {
     1: "Solvent",
@@ -145,7 +147,7 @@ def analysis_agent(state: PrismaState, model: str = MODEL_NAME):
         f"The solvency calculated using current metrics is {solvency_label[int(state.solvency_scale)]}. "
         "Explain your reasoning using the most current metrics, historical metrics and suggest actions the bank could take to improve solvency."
     )
-    state.response = getLLMResponse(prompt, model)
+    # state.response = getLLMResponse(prompt, model)
     print("AI Response:", state.response)
     columns_to_plot = [
     "Tier1_capital_ratio",
