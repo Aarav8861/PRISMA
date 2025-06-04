@@ -1,3 +1,4 @@
+import { ReactElement, ReactNode } from "react"
 
 export interface AnalysisResponse {
     solvency_scale: string,
@@ -20,3 +21,12 @@ interface GraphPaths {
     Coverage_Ratio: string,
     Sovereign_Exposure: string
 }
+
+export interface ChatMessage{
+    key: string,
+    status?: null | 'loading' | 'error' | 'success',
+    message: string | ReactElement,
+    personna: "user" | "prisma",
+    suggestions?: string[],
+    stream?: ReactElement 
+} 
