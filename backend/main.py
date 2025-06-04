@@ -6,7 +6,7 @@ from typing import List
 from pydantic import BaseModel, ConfigDict, Field
 from fpdf import FPDF
 from langchain_openai import AzureChatOpenAI
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from langgraph.prebuilt import create_react_agent
 from langgraph.checkpoint.memory import InMemorySaver
 from pathlib import Path
@@ -21,8 +21,8 @@ REPORT_PATH = f"{BASE_PATH}\\reports\\report"
 CHAT_MODEL = AzureChatOpenAI(
         azure_endpoint="https://hackathon-prisma-resource.cognitiveservices.azure.com/",
         api_version="2024-12-01-preview",
-        deployment_name="o4-mini", 
-        api_key="",
+        deployment_name="o3-mini", 
+        api_key="ECCuDXqzU3RGTTWlnc4rchS3kXbAt2Q0yRsK64eOypUMYwx7X11PJQQJ99BEACHYHv6XJ3w3AAAAACOG0BqD",
         streaming=True,
         max_completion_tokens=1000,
     )
@@ -51,7 +51,6 @@ class PrismaState(BaseModel):
     solvency_scale: str = ""
     df: pd.DataFrame = Field(default_factory=pd.DataFrame, exclude=True)
     graph_paths: dict[str, str] = {}
-    
     model_config = ConfigDict(arbitrary_types_allowed=True)
     
 def ingest_agent(state: PrismaState):
@@ -409,9 +408,17 @@ def report_gen_agent(state: PrismaState):
     state.step = "chat"
     print(f"Report saved to: {final}")
     return state
-
-def chatbot_agent(prompt: str, checkpointer: InMemorySaver):
-    msg = {"messages": [HumanMessage(content=prompt)]}
+summary_initialized = False
+def chatbot_agent(prompt: str, checkpointer: InMemorySaver, ai_summary: str):
+    global summary_initialized
+    msg = ""
+    if summary_initialized == False:
+        final_prompt = ai_summary + "\n" + prompt
+        msg={"messages":[HumanMessage(content=final_prompt)]}
+        print(final_prompt)
+        summary_initialized = True
+    else:
+        msg = {"messages": [HumanMessage(content=prompt)]}
     
     agent = create_react_agent(
         model=CHAT_MODEL,

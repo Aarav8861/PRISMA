@@ -21,6 +21,7 @@ app.add_middleware(
 # ---------- GLOBAL STATE ----------
 shared_state = PrismaState()  # Shared mutable state (not thread-safe)
 checkpointer = InMemorySaver()
+ai_summary = ""
 # ---------- BUILD FLOW 1 GRAPH ----------
 builder_flow1 = StateGraph(PrismaState)
 builder_flow1.add_node("ingest", ingest_agent)
@@ -45,6 +46,8 @@ graph_flow2 = builder_flow2.compile()
 def run_analysis():
     global shared_state
     shared_state = graph_flow1.invoke(shared_state)
+    global ai_summary
+    ai_summary = shared_state.get("response")
     return {
         "solvency_scale": shared_state.get("solvency_scale"),
         "analysis_summary": shared_state.get("response"),
@@ -73,4 +76,5 @@ def generate_report():
 @app.get("/stream-response")
 def stream_response(prompt: str): 
     global checkpointer
-    return StreamingResponse(chatbot_agent(prompt, checkpointer), media_type="text/plain")
+    global ai_summary
+    return StreamingResponse(chatbot_agent(prompt, checkpointer, ai_summary), media_type="text/plain")
