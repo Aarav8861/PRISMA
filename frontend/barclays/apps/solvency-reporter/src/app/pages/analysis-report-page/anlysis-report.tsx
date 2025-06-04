@@ -152,7 +152,6 @@ const AnalysisReportPage = () => {
         sx={{
           flex: 1,
         }}
-        width={1400}
         bgcolor={'#F8F8F8'}
         margin={1}
       >
@@ -166,7 +165,7 @@ const AnalysisReportPage = () => {
           }}
         >
           <Typography
-            variant="h3"
+            variant="h4"
             sx={{
               fontWeight: 'normal',
               color: darkBlue,
@@ -174,7 +173,7 @@ const AnalysisReportPage = () => {
               textTransform: 'uppercase',
             }}
           >
-            PRISMA AI SOLVENCY PLATFORM
+            PRISMA AI
           </Typography>
           <List sx={{ paddingBottom: 50 }}>
             {messages.map((message: ChatMessage) => {
