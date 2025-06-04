@@ -9,6 +9,8 @@ import HomePage from './pages/home-page/home-page';
 import { useEffect, useState } from 'react';
 import LoadingScreen from './components/loading/loader';
 import { ThemeProvider, createTheme } from '@mui/material';
+import AnalysisPage from './pages/analysis-page/analysisp-page';
+import AnalysisReportPage from './pages/analysis-report-page/anlysis-report';
 
 export function App() {
   const [isLoading, setLoading] = useState(true);
@@ -49,6 +51,12 @@ export function App() {
           path="/"
           element={
             <HomePage/>
+          }
+        />
+        <Route
+          path='/analysis'
+          element={
+            <AnalysisReportPage/>
           }
         />
       </Routes>
